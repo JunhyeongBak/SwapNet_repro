@@ -1,0 +1,7 @@
+*.png
+*.jpg
+*.gif
+*.solverstate
+*.caffemodel
+*.pth
+*.csv
