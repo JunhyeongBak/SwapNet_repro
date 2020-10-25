@@ -7,7 +7,7 @@ from PIL import Image
 from torch import nn
 from torchvision import transforms as transforms
 
-from datasets import BaseDataset, get_transforms
+from datasets import get_transforms
 from datasets.data_utils import (
     get_dir_file_extension,
     remove_top_dir,
@@ -20,7 +20,7 @@ from datasets.data_utils import (
 )
 
 
-class WarpDataset(BaseDataset):
+class WarpDataset():
     """ Warp dataset for the warp module of SwapNet """
 
     @staticmethod
@@ -53,7 +53,11 @@ class WarpDataset(BaseDataset):
             cloth_dir: (optional) path to cloth dir, if provided
             body_dir: (optional) path to body dir, if provided
         """
-        super().__init__(opt)
+        #super().__init__(opt)
+        self.opt = opt
+        self.root = opt.dataroot
+        self.crop_bounds = self.parse_crop_bounds()
+        self.is_train = opt.is_train
 
         self.cloth_dir = cloth_dir if cloth_dir else os.path.join(opt.dataroot, "cloth")
         print("cloth dir", self.cloth_dir)
@@ -181,6 +185,15 @@ class WarpDataset(BaseDataset):
             "input_cloths": input_cloth_tensor,
             "target_cloths": target_cloth_tensor,
         }
+    
+    def parse_crop_bounds(self):
+        if isinstance(self.opt.crop_size, int) and self.opt.crop_size < self.opt.load_size:
+            minimum = int((self.opt.load_size - self.opt.crop_size) / 2)
+            maximum = self.opt.load_size - minimum
+            crop_bounds = (minimum, minimum), (maximum, maximum) # assuming square
+        else:
+            crop_bounds = eval(self.opt.crop_bounds) if self.opt.crop_bounds else None
+        return crop_bounds
 
 
 def get_corresponding_file(original, target_dir, target_ext=None):

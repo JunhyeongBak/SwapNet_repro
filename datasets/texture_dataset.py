@@ -8,7 +8,7 @@ from torch import nn
 from torchvision import transforms as transforms
 from torchvision.transforms import functional as tf
 
-from datasets import BaseDataset, get_transforms
+from datasets import get_transforms
 from datasets.data_utils import (
     IMG_EXTENSIONS,
     find_valid_files,
@@ -23,7 +23,7 @@ from datasets.data_utils import (
 from util.util import remove_prefix
 
 
-class TextureDataset(BaseDataset):
+class TextureDataset():
     """ Texture dataset for the texture module of SwapNet """
 
     @staticmethod
@@ -48,7 +48,12 @@ class TextureDataset(BaseDataset):
             texture_dir (str): optional override path to texture dir
             cloth_dir (str): optional override path to cloth dir
         """
-        super().__init__(opt)
+        #super().__init__(opt)
+        self.opt = opt
+        self.root = opt.dataroot
+        self.crop_bounds = self.parse_crop_bounds()
+        self.is_train = opt.is_train
+
         # get all texture files
         self.texture_dir = (
             texture_dir if texture_dir else os.path.join(opt.dataroot, "texture")
@@ -77,6 +82,16 @@ class TextureDataset(BaseDataset):
 
         # # per-channel transforms on the input
         # self.input_transform = get_transforms(opt)
+
+
+    def parse_crop_bounds(self):
+        if isinstance(self.opt.crop_size, int) and self.opt.crop_size < self.opt.load_size:
+            minimum = int((self.opt.load_size - self.opt.crop_size) / 2)
+            maximum = self.opt.load_size - minimum
+            crop_bounds = (minimum, minimum), (maximum, maximum) # assuming square
+        else:
+            crop_bounds = eval(self.opt.crop_bounds) if self.opt.crop_bounds else None
+        return crop_bounds
 
     def __len__(self):
         if self.is_train:

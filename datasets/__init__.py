@@ -3,7 +3,7 @@ import importlib
 import torch
 from torchvision.transforms import transforms
 
-from datasets.base_dataset import BaseDataset
+#from datasets.base_dataset import BaseDataset
 
 
 def find_dataset_using_name(dataset_name):
@@ -19,7 +19,7 @@ def find_dataset_using_name(dataset_name):
     dataset = None
     target_dataset_name = dataset_name.replace("_", "") + "dataset"
     for name, cls in datasetlib.__dict__.items():
-        if name.lower() == target_dataset_name.lower() and issubclass(cls, BaseDataset):
+        if name.lower() == target_dataset_name.lower():
             dataset = cls
 
     if dataset is None:
