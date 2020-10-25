@@ -12,8 +12,6 @@ import optimizers
 from util.util import PromptOnce
 
 datasets, models, optimizers  # so auto import doesn't remove above
-#from options.base_options import BaseOptions
-
 
 class TrainOptions():
 
@@ -22,7 +20,7 @@ class TrainOptions():
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
             conflict_handler="resolve",
         )
-        # == EXPERIMENT SETUP ==
+
         parser.add_argument(
             "--config_file",
             help="load arguments from a json file instead of command line",
@@ -44,7 +42,6 @@ class TrainOptions():
             default=256,
             help="display window size for both visdom and HTML",
         )
-        # == MODEL INIT / LOADING / SAVING ==
         parser.add_argument(
             "--model", help="which model to run", choices=("warp", "texture", "pix2pix")
         )
@@ -57,7 +54,6 @@ class TrainOptions():
             help="epoch to load (use with --continue_train or for inference, 'latest' "
                  "for latest ",
         )
-        # == DATA / IMAGE LOADING ==
         parser.add_argument(
             "--dataroot",
             required=True,
@@ -74,7 +70,6 @@ class TrainOptions():
             help="how data is formatted. video mode allows additional source inputs"
                  "from other frames of the video",
         )
-        # channels
         parser.add_argument(
             "--cloth_representation",
             default="labels",  # default according to SwapNet
@@ -108,7 +103,6 @@ class TrainOptions():
             type=int,
             help="RGB textured image number of channels",
         )
-        # image dimension / editing
         parser.add_argument(
             "--pad", action="store_true", help="add a padding to make image square"
         )
@@ -125,7 +119,6 @@ class TrainOptions():
             "--crop_bounds",
             help="DO NOT USE WITH --crop_size. crop images to a region: ((xmin, ymin), (xmax, ymax))",
         )
-        # == ITERATION PROPERTIES ==
         parser.add_argument(
             "--max_dataset_size", type=int, default=float("inf"), help="cap on data"
         )
@@ -150,12 +143,6 @@ class TrainOptions():
         parser.add_argument(
             "--no_confirm", action="store_true", help="do not prompt for confirmations"
         )
-
-        self._parser = parser
-        #self.is_train = None
-        self.is_train = True
-        parser = self._parser
-        # override the model arg from base options, such that model is REQUIRED
         parser.add_argument(
             "--model",
             help="which model to run",
@@ -273,40 +260,29 @@ class TrainOptions():
             "--init_gain", default=0.02, type=float, help="init scaling factor"
         )
 
-    def gather_options(self):
-        parser = self._parser
+        self._parser = parser
+        self.is_train = True
 
-        # basic options
-        opt, _ = parser.parse_known_args()
+    def gather_options(self):
+        # Get parser(basic options)
+        parser = self._parser
+        opt, unparsed = parser.parse_known_args() # 이제 어느 함수에서든 opt를 접근할수 있음
         parser.set_defaults(dataset=opt.model)
-        #opt.batch_size
 
         # modify options for each arg that can do so
         modifiers = ["model", "dataset"]
         if self.is_train:
             modifiers.append("optimizer_D")
 
-
         for arg in modifiers:
-            # becomes model(s), dataset(s), optimizer(s)
-            import_source = eval(arg.split("_")[0] + "s")
-            # becomes e.g. opt.model, opt.dataset, opt.optimizer
-            name = getattr(opt, arg)
-  
+            import_source = eval(arg.split("_")[0] + "s") # 해당 이름으로 모델 불러오기 즉 = ex) models
+            name = getattr(opt, arg) # opt.model에 있는 것
 
-        
-                
             if name is not None:
-
                 options_modifier = import_source.get_options_modifier(name)
                 parser = options_modifier(parser, self.is_train)
-                opt, _ = parser.parse_known_args()
+                opt, unparsed = parser.parse_known_args()
 
-
-
-
-
-            # hacky, add optimizer G params if different from opt_D
             if arg is "optimizer_D" and opt.optimizer_D != opt.optimizer_G:
                 modifiers.append("optimizer_G")
 
@@ -325,15 +301,6 @@ class TrainOptions():
         ), "Crop size must be less than or equal to load size "
 
     def parse(self, print_options=True, store_options=True, user_overrides=True):
-        """
-
-        Args:
-            print_options: print the options to screen when parsed
-            store_options: save the arguments to file: "{opt.checkpoints_dir}/{opt.name}/args.json"
-
-        Returns:
-
-        """
         opt = self.gather_options()
         opt.is_train = self.is_train
 
